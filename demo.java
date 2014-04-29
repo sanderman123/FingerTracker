@@ -5,10 +5,7 @@ import static com.googlecode.javacv.cpp.opencv_core.*;
 import static com.googlecode.javacv.cpp.opencv_highgui.*;
 import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 
-import java.awt.Point;
 import java.util.ArrayList;
-import java.util.Vector;
-import java.math.*;
 
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacv.CanvasFrame;
@@ -50,9 +47,10 @@ public class demo {
 		CvSeq hullContour = detectConvexHull(objContour);
 		cvDrawContours(im_hull, hullContour, CvScalar.RED, CvScalar.RED, 0, 2,
 				8);
-		//im_hull = drawContourPoints(hullContour, 10, im_hull);
-		im_hull = drawFingersStupid(hullContour, im_hull);
-		
+		// im_hull = drawContourPoints(hullContour, 10, im_hull);
+		// im_hull = drawFingersStupid(hullContour, im_hull);
+		drawContourPointsWithAngleFilter(objContour, 40, 50, im_hull);
+
 		canvas2.showImage(im_hull);
 
 		// This will close canvas frame on exit
@@ -60,14 +58,12 @@ public class demo {
 		canvas2.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 	}
 
-	
-	
 	/**
-	 * Attempt to try and find one point per finger
-	 * Not working yet...
+	 * Attempt to try and find one point per finger Not working yet...
 	 * 
 	 * @param contour
-	 * @param threshold
+	 * @param distThreshold: To check whether point P is a fingertip distThreshold is the distance between the 2 points used to make an angle with P and P
+	 * @param angleThreshold: Every point found with an angle below this value will be considered a positive
 	 * @param image
 	 * @return
 	 */
@@ -112,12 +108,8 @@ public class demo {
 			int first = edgePoints.get(i);
 			int last = edgePoints.get((i + 1) % edgePoints.size());
 
-			//for(int k = edgePoints.get(i); k < ; k++)
-			
-			
-			
-			
-			
+			// for(int k = edgePoints.get(i); k < ; k++)
+
 			int middle = (int) Math.floor(first + (last - first) / 2);
 			CvPoint mp = new CvPoint(cvGetSeqElem(contour, middle));
 			avPts.add(mp);
@@ -145,9 +137,66 @@ public class demo {
 		return image;
 	}
 
+	public static IplImage drawContourPointsWithAngleFilter(CvSeq contour,
+			int distThreshold, int angleThreshold, IplImage image) {
+		
+		//The contour indices of the fingertips will be stored in here
+		ArrayList<Integer> tips = new ArrayList<Integer>();
+		
+		for( int i = 0; i < contour.total(); i++){
+			//For every point find the angle with 2 neighboring points at a certain distance
+			CvPoint v = new CvPoint(cvGetSeqElem(contour, i));
+			CvPoint prev = new CvPoint(cvGetSeqElem(contour,
+					(i - distThreshold) % contour.total()));
+			CvPoint next = new CvPoint(cvGetSeqElem(contour,
+					(i + distThreshold) % contour.total()));
+			
+			int angle = threePtAngle(v, next, prev);
+			//System.out.println("Angle: "+angle);
+			
+			//Is this angle lower than our angle-threshold, then it is probably a fingertip
+			if(angle < angleThreshold){
+				tips.add(i);
+			}
+		}
+		
+		//Draw the fingertips
+		for (int i = 0; i < tips.size(); i++) {
+			CvPoint v = new CvPoint(cvGetSeqElem(contour, tips.get(i)));
+			cvDrawCircle(image, v, 2, CvScalar.BLUE, -1, 8, 0);			
+		}
+		
+		System.out.println("Contour size: " + contour.total());
+		System.out.println("Tips size: " + tips.size());
+
+		return image;
+	}
+	
 	/**
-	 * Adds points to the image at the place of the fingers
-	 * !!Multiple points per finger...
+	 * Help function for drawContourPointsWithAngleFilter
+	 * Finds the angle between 3 points (in Degrees)
+	 * @param p1 = middle point
+	 * @param p2 
+	 * @param p3
+	 * @return
+	 */
+	private static int threePtAngle (CvPoint p1, CvPoint p2, CvPoint p3) {
+		//cos-1((P12^2 + P13^2 - P23^2)/(2 * P12 * P13))
+		//P12 = sqrt((P1x - P2x)^2 + (P1y - P2y)^2)
+		
+		float p12 = (float) Math.sqrt((p1.x() - p2.x())*(p1.x() - p2.x()) + (p1.y() - p2.y())*(p1.y() - p2.y()));
+		float p13 = (float) Math.sqrt((p1.x() - p3.x())*(p1.x() - p3.x()) + (p1.y() - p3.y())*(p1.y() - p3.y()));
+		float p23 = (float) Math.sqrt((p2.x() - p3.x())*(p2.x() - p3.x()) + (p2.y() - p3.y())*(p2.y() - p3.y()));
+		
+		float angle = (float) Math.acos((p12*p12+p13*p13 - p23*p23)/(2*p12*p13));
+		
+		
+		return (int)(float)(angle*180/Math.PI);
+	}
+
+	/**
+	 * Adds points to the image at the place of the fingers !!Multiple points
+	 * per finger...
 	 * 
 	 * @param contour
 	 * @param image
@@ -156,7 +205,7 @@ public class demo {
 	private static IplImage drawFingersStupid(CvSeq contour, IplImage image) {
 		for (int i = 0; i < contour.total(); i++) {
 			CvPoint v = new CvPoint(cvGetSeqElem(contour, i));
-			if(i == 0){
+			if (i == 0) {
 				cvDrawCircle(image, v, 5, CvScalar.GREEN, -1, 8, 0);
 			} else {
 				cvDrawCircle(image, v, 5, CvScalar.BLUE, -1, 8, 0);
@@ -174,8 +223,12 @@ public class demo {
 		return dist;
 	}
 
-	/*
-	 * Detects the largest white object only
+	/**
+	 * Detects the contour of the largest white object only
+	 * 
+	 * @param srcImage = black and white image, used for processing
+	 * @param image = colour image, designed for drawing (not used at the moment)
+	 * @return
 	 */
 	public static CvSeq detectBiggestObject(IplImage srcImage, IplImage image) {
 
@@ -220,8 +273,11 @@ public class demo {
 		return bigContour;
 	}
 
-	/*
-	 * Detects the convex hull of the contour
+	/**
+	 * Detects the convex hull of a contour
+	 * 
+	 * @param contour
+	 * @return The hull as CvSeq
 	 */
 	public static CvSeq detectConvexHull(CvSeq contour) {
 		// IplImage resultImage = cvCloneImage(image);
@@ -242,7 +298,15 @@ public class demo {
 		return hull;
 	}
 
-	public static IplImage drawPoint(IplImage img, CvPoint center,
+	/**
+	 * Helper function
+	 * Draws a point with center "center" and colour "colour" in image "img". 
+	 * @param img
+	 * @param center
+	 * @param colour
+	 * @return
+	 */
+	private static IplImage drawPoint(IplImage img, CvPoint center,
 			CvScalar colour) {
 		int thickness = -1;
 		int lineType = 8;
