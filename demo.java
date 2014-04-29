@@ -58,12 +58,12 @@ public class demo {
 		canvas2.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 	}
 
+
 	/**
-	 * Attempt to try and find one point per finger Not working yet...
+	 * Attempt to try and find one point per finger using the Convex Hull. Not working yet...
 	 * 
 	 * @param contour
-	 * @param distThreshold: To check whether point P is a fingertip distThreshold is the distance between the 2 points used to make an angle with P and P
-	 * @param angleThreshold: Every point found with an angle below this value will be considered a positive
+	 * @param threshold
 	 * @param image
 	 * @return
 	 */
@@ -137,6 +137,15 @@ public class demo {
 		return image;
 	}
 
+	/**
+	 * Uses angles to try and find the finger tips
+	 * 
+	 * @param contour
+	 * @param distThreshold: To check whether point P is a fingertip distThreshold is the distance between the 2 points used to make an angle with P and P
+	 * @param angleThreshold: Every point found with an angle below this value will be considered a positive
+	 * @param image
+	 * @return
+	 */
 	public static IplImage drawContourPointsWithAngleFilter(CvSeq contour,
 			int distThreshold, int angleThreshold, IplImage image) {
 		
