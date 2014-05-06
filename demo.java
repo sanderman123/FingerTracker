@@ -48,7 +48,7 @@ public class demo {
 		cvDrawContours(im_hull, hullContour, CvScalar.RED, CvScalar.RED, 0, 2,
 				8);
 		// im_hull = drawContourPoints(hullContour, 10, im_hull);
-		// im_hull = drawFingersStupid(hullContour, im_hull);
+		im_hull = drawFingersStupid(hullContour, im_hull);
 		drawContourPointsWithAngleFilter(objContour, 40, 50, im_hull);
 
 		canvas2.showImage(im_hull);
@@ -58,6 +58,43 @@ public class demo {
 		canvas2.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 	}
 
+	
+	public static CvSeq combinedFilter(CvSeq contour, CvSeq hull, int distThreshold, int angleThreshold){
+		//Apply the angle filter to each point in the hull using the ponts in the contour
+		
+		//The contour indices of the fingertips will be stored in here
+		ArrayList<Integer> tips = new ArrayList<Integer>();
+		
+		for( int i = 0; i < contour.total(); i++){
+			//For every point find the angle with 2 neighboring points at a certain distance
+			CvPoint v = new CvPoint(cvGetSeqElem(contour, i));
+			CvPoint prev = new CvPoint(cvGetSeqElem(contour,
+					(i - distThreshold) % contour.total()));
+			CvPoint next = new CvPoint(cvGetSeqElem(contour,
+					(i + distThreshold) % contour.total()));
+			
+			int angle = threePtAngle(v, next, prev);
+			//System.out.println("Angle: "+angle);
+			
+			//Is this angle lower than our angle-threshold, then it is probably a fingertip
+			if(angle < angleThreshold){
+				tips.add(i);
+			}
+		}
+		
+		//Draw the fingertips
+		for (int i = 0; i < tips.size(); i++) {
+			CvPoint v = new CvPoint(cvGetSeqElem(contour, tips.get(i)));
+//			cvDrawCircle(image, v, 2, CvScalar.BLUE, -1, 8, 0);			
+		}
+		
+		System.out.println("Contour size: " + contour.total());
+		System.out.println("Tips size: " + tips.size());
+		
+		
+		return null;
+		
+	}
 
 	/**
 	 * Attempt to try and find one point per finger using the Convex Hull. Not working yet...
@@ -217,7 +254,7 @@ public class demo {
 			if (i == 0) {
 				cvDrawCircle(image, v, 5, CvScalar.GREEN, -1, 8, 0);
 			} else {
-				cvDrawCircle(image, v, 5, CvScalar.BLUE, -1, 8, 0);
+				cvDrawCircle(image, v, 5, CvScalar.YELLOW, -1, 8, 0);
 			}
 			System.out.println(" X value = " + v.x() + " ; Y value =" + v.y());
 		}
