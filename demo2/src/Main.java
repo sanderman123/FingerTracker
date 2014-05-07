@@ -34,15 +34,38 @@ public class Main {
 	}
 
 	public void run() {
+
+		cap = new VideoCapture(0);
+		im = new Imshow("test");
+
+		Mat elem = Imgproc.getStructuringElement(Imgproc.MORPH_RECT,
+				new Size(15, 15));
+		Mat elem2 = Imgproc.getStructuringElement(Imgproc.MORPH_RECT,
+				new Size(20, 20));
+
 		Mat img = new Mat();
+		while (true) {
+			cap.read(img);
+			Core.flip(img, img, 1);
+
+			Imgproc.cvtColor(img, img, Imgproc.COLOR_RGB2GRAY);
+			Imgproc.threshold(img, img, 100, 255, Imgproc.THRESH_BINARY);
+			Imgproc.erode(img, img, elem);
+			Imgproc.dilate(img, img, elem2);
+			Imgproc.cvtColor(img, img, Imgproc.COLOR_GRAY2RGB);
+
+			process(img);
+		}
+
+	}
+
+	public void process(Mat img) {
 		Mat img2 = new Mat();
 		Mat img3 = new Mat();
 		Mat h = new Mat();
-		img = Highgui
-				.imread("C:\\Users\\seanwu\\Eclipse Workspace\\GestureDetector\\1.jpg");
-		Mat elem = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE,
+		Mat elem = Imgproc.getStructuringElement(Imgproc.MORPH_RECT,
 				new Size(100, 100));
-		Mat elem2 = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE,
+		Mat elem2 = Imgproc.getStructuringElement(Imgproc.MORPH_RECT,
 				new Size(120, 120));
 
 		Imgproc.cvtColor(img, img2, Imgproc.COLOR_RGB2GRAY);
@@ -69,7 +92,9 @@ public class Main {
 				maxContour = i;
 			}
 		}
-		if (maxRect != null && (double)maxRect.height/(double)maxRect.width>1 && maxRect.area()>100) {
+		if (maxRect != null
+				&& (double) maxRect.height / (double) maxRect.width > 1
+				&& maxRect.area() > 100) {
 			Imgproc.drawContours(img, contours, maxContour, new Scalar(0, 0,
 					255), 3);
 			Point[] finger = contours.get(maxContour).toArray();
@@ -80,24 +105,9 @@ public class Main {
 				}
 			}
 			Core.circle(img, top, 10, new Scalar(0, 255, 0), 3);
-			// Core.rectangle(img, maxRect.tl(), maxRect.br(), new
-			// Scalar(255,0,0),3);
 		}
 
-		im = new Imshow("test");
 		im.showImage(img);
-		/*
-		 * cap = new VideoCapture(0); im = new Imshow("test");
-		 * 
-		 * // colorSampling();
-		 * 
-		 * Mat img = new Mat(); while (true) { cap.read(img); Core.flip(img,
-		 * img, 1); Mat mask = new Mat(new Size(img.width() + 2, img.height() +
-		 * 2), CvType.CV_8UC1, new Scalar(0)); Imgproc.floodFill(img, mask, new
-		 * Point(550, 350), new Scalar(0, 0, 255), null, new Scalar(3,3,3), new
-		 * Scalar(3,3,3),0); Core.rectangle(img, new Point(500, 300), new
-		 * Point(600, 400), new Scalar(255, 0, 0)); im.showImage(img); }
-		 */
 	}
 
 	public static void main(String[] args) {
